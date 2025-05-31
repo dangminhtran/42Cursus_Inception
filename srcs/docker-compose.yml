@@ -4,10 +4,10 @@ services:
   mariadb:
     container_name: mariadb
     build: 
-        context: requirements/mariadb
-        dockerfile: Dockerfile
-        env_file: .env
-    networks :
+      context: requirements/mariadb
+      dockerfile: Dockerfile
+    env_file: .env
+    networks:
       - inception
     volumes:
       - mariadb:/var/lib/mysql
@@ -15,65 +15,70 @@ services:
     expose:
       - "3306"
     healthcheck:
-      test: ["CMD", "nc", "-zv", "mariadb", "3306"]
-      interval: 1s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
       timeout: 5s
-      retries: 10
+      retries: 5
+      start_period: 30s
 
-  nginx:
-    container_name: nginx
+  wordpress:
+    container_name: wordpress
+    build: 
+      context: requirements/wordpress
+      dockerfile: Dockerfile
+    env_file: .env
     volumes:
       - wordpress:/var/www/wordpress
     networks:
       - inception
     depends_on:
-      - wordpress
+      mariadb:
+        condition: service_healthy
+    restart: on-failure
+    expose: 
+      - "9000"
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm -t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    container_name: nginx
     build: 
-    context: requirements/nginx
-    dockerfile: Dockerfile
+      context: requirements/nginx
+      dockerfile: Dockerfile
     env_file: .env
+    volumes:
+      - wordpress:/var/www/wordpress
+    networks:
+      - inception
+    depends_on:
+      wordpress:
+        condition: service_healthy
     ports:
       - "443:443"
     restart: on-failure
     healthcheck:
-      test: ["CMD", "curl", "-f", "https://localhost"]
-      interval: 1s
+      test: ["CMD", "nginx", "-t"]
+      interval: 10s
       timeout: 5s
-      retries: 10
-      
+      retries: 3
+
+volumes:
   wordpress:
-    container_name: wordpress
-    env_file: .env
-    volumes:
-      - wordpress:/var/www/wordpress
-    networks:
-      - inception
-    build: 
-    context: requirements/wordpress
-    dockerfile: Dockerfile
-    depends_on:
-      - mariadb
-    restart: on-failure
-    expose: 
-      - "9000"
-  
-  volumes:
-    wordpress:
-      driver: local
-      driver_opts:
+    driver: local
+    driver_opts:
       type: 'none'
-      o: 'bind
+      o: 'bind'
       device: '/home/dangtran/data/wordpress'
-    mariadb:
-      driver: local
-      driver_opts:
-      type: 'none' 
-      o: 'bind'										 # Les Bind Mounts sont des volumes qui se montent sur un chemin d'accès à l'hôte, et ils peuvent être modifiés par d'autres processus en dehors de docker.
+  mariadb:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
       device: '/home/dangtran/data/mariadb'
 
-  networks:
-    inception:
+networks:
+  inception:
     driver: bridge
-
-
-# healthcheck: utile ?

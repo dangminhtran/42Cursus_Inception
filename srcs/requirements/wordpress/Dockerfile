@@ -1,22 +1,41 @@
 FROM debian:bullseye
 
-# update and upgrade the system
+# Update and upgrade the system
 RUN apt-get update && apt-get upgrade -y
 
-RUN apt-get -y install wget
+# Install minimal required packages for WordPress
+RUN apt-get install -y \
+    curl \
+    php7.4 \
+    php7.4-fpm \
+    php7.4-mysql \
+    php7.4-mbstring \
+    php7.4-xml \
+    php7.4-gd \
+    php7.4-curl \
+    php7.4-zip \
+    mariadb-client \
+    netcat-traditional \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# install the required packages
-RUN apt-get install -y curl php php7.4-fpm php-mysql mariadb-client
-# RUN apt-get install -y php7.4 php-fpm php-mysql mariadb-client
+# Create WordPress directory with proper permissions
+RUN mkdir -p /var/www/wordpress \
+    && chown -R www-data:www-data /var/www/wordpress \
+    && chmod -R 755 /var/www/wordpress
 
-# RUN wget https://fr.wordpress.org/wordpress-6.0-fr_FR.tar.gz -P /var/www
+# Create PHP-FPM run directory
+RUN mkdir -p /run/php \
+    && chown -R www-data:www-data /run/php
 
-# copy the wordpress configuration script to the root directory in the container
+# Copy the WordPress configuration script
 COPY tools/script.sh /tmp/script.sh
 
-# change the permission of the script to make it executable
-RUN  chmod +x /tmp/script.sh
-# RUN		chown -R root:root /var/www/wordpress
+# Make script executable
+RUN chmod +x /tmp/script.sh
 
-# define the entrypoint command to run when the container starts
-ENTRYPOINT ["sh", "/tmp/script.sh"]
+# Expose PHP-FPM port
+EXPOSE 9000
+
+# Define entrypoint
+ENTRYPOINT ["bash", "/tmp/script.sh"]
