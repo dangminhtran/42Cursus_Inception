@@ -86,7 +86,7 @@ cat >> /etc/php/7.4/fpm/php.ini <<EOF
 ; WordPress optimizations
 upload_max_filesize = 32M
 post_max_size = 32M
-memory_limit = 256M
+memory_limit = 256M "/tmp/script.sh"]
 max_execution_time = 300
 max_input_vars = 3000
 EOF

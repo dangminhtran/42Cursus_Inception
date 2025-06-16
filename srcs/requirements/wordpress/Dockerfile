@@ -38,4 +38,7 @@ RUN chmod +x /tmp/script.sh
 EXPOSE 9000
 
 # Define entrypoint
+# a changer avec le fichier init-wordpress.sh
 ENTRYPOINT ["bash", "/tmp/script.sh"]
+
+CMD [ "/usr/sbin/php-fpm7.4", "--nodaemonize", "--fpm-config", "/etc/php/7.4/fpm/php-fpm.conf" ]
