@@ -1,0 +1,118 @@
+services:
+  nginx:
+    build: ./requirements/nginx/
+    container_name: nginx
+    restart: always
+    ports:
+      - "443:443"
+    depends_on:
+      - wordpress
+    volumes:
+      - wordpress_volume:/var/www/wordpress
+    networks:
+      - inception
+
+  mariadb:
+    build: ./requirements/mariadb/
+    container_name: mariadb
+    restart: always
+    volumes:
+      - mariadb_volume:/var/lib/mysql
+    env_file:
+      - .env
+    networks:
+      - inception
+
+  wordpress:
+    build: ./requirements/wordpress/
+    container_name: wordpress
+    restart: always
+    ports:
+      - "9000:9000"
+    depends_on:
+      - mariadb
+    volumes:
+      - wordpress_volume:/var/www/wordpress
+    env_file:
+      - .env
+    networks:
+      - inception
+
+  # BONUS
+  # redis:
+  #   build: ./requirements/bonus/redis/
+  #   container_name: redis
+  #   restart: always
+  #   networks:
+  #     - inception
+
+  # ftp:
+  #   build: ./requirements/bonus/ftp/
+  #   container_name: ftp
+  #   restart: always
+  #   ports:
+  #     - "21:21"
+  #     - "21100-21110:21100-21110"
+  #   volumes:
+  #     - wordpress_volume:/var/www/wordpress
+  #   env_file:
+  #     - .env
+  #   networks:
+  #     - inception
+
+  # adminer:
+  #   build: ./requirements/bonus/adminer/
+  #   container_name: adminer
+  #   restart: always
+  #   ports:
+  #     - "4000:4000"
+  #   networks:
+  #     - inception
+  #   depends_on:
+  #     - mariadb
+
+  # inception:
+  #   build: ./requirements/bonus/inception/
+  #   container_name: inception
+  #   restart: always
+  #   ports:
+  #     - "8081:80"
+  #   networks:
+  #     - inception
+
+  # cadvisor:
+  #   build: ./requirements/bonus/cadvisor
+  #   container_name: cadvisor
+  #   restart: always
+  #   ports:
+  #     - "8080:8080"
+  #   volumes:
+  #     - /:/rootfs:ro
+  #     - /var/run:/var/run:rw
+  #     - /sys:/sys:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock:ro
+    #   - /sys:/sys:ro
+    #   - /var/lib/docker:/var/lib/docker:ro
+    # networks:
+    #   - inception
+
+
+volumes:
+  wordpress_volume:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/dangtran/data/wordpress
+      o: bind
+  mariadb_volume:
+    driver: local
+    driver_opts:
+      type: none
+      device: /home/dangtran/data/mysql
+      o: bind
+
+networks:
+  inception:
+    name: inception
