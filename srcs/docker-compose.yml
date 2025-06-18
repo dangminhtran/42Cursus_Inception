@@ -4,7 +4,7 @@ services:
     container_name: nginx
     restart: always
     ports:
-      - "443:443"
+      - "8443:443"
     depends_on:
       - wordpress
     volumes:
@@ -43,13 +43,13 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: /home/dangtran/data/wordpress
+      device: ~/docker-data/wordpress
       o: bind
   mariadb_volume:
     driver: local
     driver_opts:
       type: none
-      device: /home/dangtran/data/mysql
+      device: ~/docker-data/mysql
       o: bind
 
 networks:

@@ -1,9 +1,8 @@
 FROM debian:bullseye
 
-RUN apt update -y && apt upgrade -y && apt install -y \
+RUN apt update && apt upgrade && apt install -y \
 	mariadb-server \
 	mariadb-client \
-	tini \
 	&& apt clean
 
 COPY ./conf/script.sh /tmp/script.sh
@@ -11,6 +10,6 @@ RUN chmod +x /tmp/script.sh
 
 EXPOSE 3306
 
-ENTRYPOINT ["/usr/bin/tini", "--", "/tmp/script.sh"]
+ENTRYPOINT ["/tmp/script.sh"]
 
-CMD ["mysqld"]
+CMD ["mysqld_safe", "--user=mysql", "--bind-address=0.0.0.0", "--datadir=/var/lib/mysql"]

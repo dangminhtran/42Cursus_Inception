@@ -23,13 +23,13 @@ RUN apt update -y && apt upgrade -y && apt install -y \
 RUN mkdir -p /var/www /run/php
 
 RUN wget https://wordpress.org/latest.tar.gz -O /tmp/wordpress.tar.gz && \
-	tar -xvf /tmp/wordpress.tar.gz -C /var/www/ && \
-	chown -R www-data:www-data /var/www/wordpress
+	tar -xvf /tmp/wordpress.tar.gz -C /var/www/
 
 COPY ./conf/php.sh /usr/local/bin/php.sh
 RUN chmod +x /usr/local/bin/php.sh
 
 EXPOSE 9000
 
-ENTRYPOINT ["/usr/local/bin/php.sh"]
 WORKDIR /var/www/wordpress
+
+ENTRYPOINT ["/usr/local/bin/php.sh"]
