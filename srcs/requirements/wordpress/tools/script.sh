@@ -40,7 +40,8 @@ if [ ! -f wp-config.php ]; then
         --dbname="$MYSQL_DB" \
         --dbuser="$MYSQL_USER" \
         --dbpass="$MYSQL_PASSWORD" \
-        --allow-root
+        --allow-root \
+        --debug=true 
     
     echo "Installing WordPress..."
     wp core install \
@@ -65,34 +66,24 @@ fi
 #---------------------------------------------------PHP-FPM configuration---------------------------------------------------#
 echo "Configuring PHP-FPM..."
 
-# Backup original configuration
-cp /etc/php/7.4/fpm/pool.d/www.conf /etc/php/7.4/fpm/pool.d/www.conf.backup
-
-# Configure PHP-FPM to listen on port 9000
-sed -i 's|listen = /run/php/php7.4-fpm.sock|listen = 9000|g' /etc/php/7.4/fpm/pool.d/www.conf
-
 # Configure PHP-FPM to listen on all interfaces
-sed -i 's|;listen.owner = www-data|listen.owner = www-data|g' /etc/php/7.4/fpm/pool.d/www.conf
-sed -i 's|;listen.group = www-data|listen.group = www-data|g' /etc/php/7.4/fpm/pool.d/www.conf
-sed -i 's|;listen.mode = 0660|listen.mode = 0660|g' /etc/php/7.4/fpm/pool.d/www.conf
+sed -i 's/listen = \/run\/php\/php7.4-fpm.sock/listen = 0.0.0.0:9000/' /etc/php/7.4/fpm/pool.d/www.conf
 
-# Set proper user and group
-sed -i 's|user = www-data|user = www-data|g' /etc/php/7.4/fpm/pool.d/www.conf
-sed -i 's|group = www-data|group = www-data|g' /etc/php/7.4/fpm/pool.d/www.conf
+# Ensure PHP-FPM can handle connections from any IP
+if ! grep -q "listen.allowed_clients" /etc/php/7.4/fpm/pool.d/www.conf; then
+    echo "listen.allowed_clients = any" >> /etc/php/7.4/fpm/pool.d/www.conf
+fi
 
-# PHP configuration for WordPress
-cat >> /etc/php/7.4/fpm/php.ini <<EOF
-
-; WordPress optimizations
-upload_max_filesize = 32M
-post_max_size = 32M
-memory_limit = 256M "/tmp/script.sh"]
-max_execution_time = 300
-max_input_vars = 3000
-EOF
+# Create wp-config.php from sample if it doesn't exist
+if [ ! -f wp-config.php ] && [ -f wp-config-sample.php ]; then
+    sed -i "s/username_here/$MYSQL_USER/g" wp-config-sample.php
+    sed -i "s/password_here/$MYSQL_PASSWORD/g" wp-config-sample.php
+    sed -i "s/localhost/mariadb/g" wp-config-sample.php
+    sed -i "s/database_name_here/$MYSQL_DB/g" wp-config-sample.php
+    cp /var/www/wordpress/wp-config-sample.php /var/www/wordpress/wp-config.php
+fi
 
 echo "PHP-FPM configuration completed!"
-
 #---------------------------------------------------Start PHP-FPM---------------------------------------------------#
 echo "Starting PHP-FPM..."
 

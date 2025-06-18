@@ -4,6 +4,7 @@ DATA_DIR = /home/dangtran/data
 WORDPRESS_DIR = $(DATA_DIR)/wordpress
 MARIADB_DIR = $(DATA_DIR)/mariadb
 
+
 # Colors for output
 RED = \033[0;31m
 GREEN = \033[0;32m
@@ -15,18 +16,19 @@ NC = \033[0m # No Color
 all: setup up
 
 # Setup data directories
+# @usermod -aG docker $(USER) - pour ajouter l'utilisateur au groupe docker
 setup:
 	@echo "$(YELLOW)Creating data directories...$(NC)"
-	@sudo mkdir -p $(WORDPRESS_DIR)
-	@sudo mkdir -p $(MARIADB_DIR)
-	@sudo chown -R $(USER):$(USER) $(DATA_DIR)
-	@sudo chmod -R 755 $(DATA_DIR)
+	@mkdir -p $(WORDPRESS_DIR)
+	@mkdir -p $(MARIADB_DIR)
+#	@chown -R $(USER):$(USER) $(DATA_DIR)
+#	@chmod -R 755 $(DATA_DIR)
 	@echo "$(GREEN)Data directories created successfully!$(NC)"
 
 # Build and start services
 up: setup
 	@echo "$(YELLOW)Building and starting services...$(NC)"
-	@cd srcs && docker-compose -f docker-compose.yml -p $(PROJECT_NAME) up -d --build
+	@cd srcs && docker-compose -f docker-compose.yml -p $(PROJECT_NAME) up
 	@echo "$(GREEN)All services are up and running!$(NC)"
 	@echo "$(BLUE)WordPress is available at: https://dangtran.42.fr$(NC)"
 

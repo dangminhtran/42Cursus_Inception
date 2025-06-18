@@ -1,30 +1,35 @@
 FROM debian:bullseye
 
-# Update and upgrade the system
-RUN apt-get update && apt-get upgrade -y
+RUN apt update -y && apt upgrade -y
 
-# Install MariaDB server and required tools
 RUN apt-get install -y \
-    mariadb-server \
-    mariadb-client \
-    && apt-get clean \
+	mariadb-server \
+	mariadb-client \
+	&& apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Create the required directories with proper permissions
-RUN mkdir -p /var/run/mysqld \
-    && chown -R mysql:mysql /var/run/mysqld \
-    && chmod 777 /var/run/mysqld
+# A supprimer car dans .env
+# Set environment variables for MySQL
+# ENV MYSQL_ROOT_PASSWORD=root
+# ENV MYSQL_DATABASE=default_db
+# ENV MYSQL_USER=user
+# ENV MYSQL_PASSWORD=password
+
+# Ensure the MySQL data directory exists and has the correct permissions
+RUN mkdir -p /var/lib/mysql \
+	&& chown -R mysql:mysql /var/lib/mysql \
+	&& chmod 750 /var/lib/mysql
+
 
 # Copy configuration files
 COPY conf/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
-COPY tools/script.sh /tmp/script.sh
+COPY ./tools/script.sh /tmp/script.sh
 
-# Set proper permissions
-RUN chmod +x /tmp/script.sh \
-    && chown -R mysql:mysql /var/lib/mysql
+# Set permissions for the script
+RUN chmod +x /tmp/script.sh
 
-# Expose MariaDB port
 EXPOSE 3306
 
-# Define entrypoint
-ENTRYPOINT ["bash", "/tmp/script.sh"]
+ENTRYPOINT ["/tmp/script.sh"]
+
+CMD ["mysqld", '--user=mysql']

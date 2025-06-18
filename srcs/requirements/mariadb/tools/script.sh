@@ -1,56 +1,79 @@
 #!/bin/bash
+set -e
 
-# to_config = 0
+echo "MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD"
+echo "MYSQL_DATABASE=$MYSQL_DB"
+echo "MYSQL_USER=$MYSQL_USER"
+echo "MYSQL_PASSWORD=$MYSQL_PASSWORD"
 
-#--------------mariadb initialization--------------#
-# Initialize MariaDB data directory if it doesn't exist
-if [ ! -d "/var/lib/mysql/mysql" ]; then 
-    echo "Initializing MariaDB data directory..."
-    mariadb_install_db --user=mariadb --datadir=/var/lib/mariadb
-#    to_config = 1
-fi
+# Ensure required variables are set
+: "${MYSQL_DB:?Environment variable MYSQL_DB not set}"
+: "${MYSQL_USER:?Environment variable MYSQL_USER not set}"
+: "${MYSQL_PASSWORD:?Environment variable MYSQL_PASSWORD not set}"
 
 #--------------mariadb start--------------#
 echo "Starting MariaDB..."
 service mariadb start
-sleep 10
 
-#--------------mariadb config--------------#
-# Configure root password (works for fresh installation)
-# if [ $to_config -eq 1 ]; then
-    echo "Configuring MariaDB root password..."
-    MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-"root"}
-    mariadb -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';"
-    echo "Configuring MariaDB..."
+# Wait for MariaDB to be fully ready
+echo "Waiting for MariaDB to be fully ready..."
+while ! mysqladmin ping --silent; do
+    echo "Waiting for MariaDB..."
+    sleep 2
+done
+echo "MariaDB is ready!"
 
-    # Try to set root password (for fresh install, root has no password initially)
-    mariadb -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD}';" 2>/dev/null || \
-    mariadb -u root -p ${MYSQL_ROOT_PASSWORD} -e "SELECT 1;" 2>/dev/null || {
-        echo "Root password configuration failed"
-        exit 1
+# Check if root password is set and use it for authentication
+if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
+    # Try to set root password (will fail if already set, which is fine)
+    echo "Setting root password..."
+    mysqladmin -u root password "$MYSQL_ROOT_PASSWORD" 2>/dev/null || {
+        echo "Root password already set or failed to set, continuing..."
+    }
+    
+    # Use password for all operations
+    echo "Creating database ${MYSQL_DB}..."
+    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS \`${MYSQL_DB}\`;" 2>/dev/null || {
+        echo "Database creation failed with password, trying without password..."
+        mysql -u root -e "CREATE DATABASE IF NOT EXISTS \`${MYSQL_DB}\`;"
     }
 
-    # Create database
-    echo "Creating database ${MYSQL_DB}..."
-    mariadb -u root -p ${MYSQL_ROOT_PASSWORD} -e "CREATE DATABASE IF NOT EXISTS \`${MYSQL_DB}\`;"
-
-    # Create user
     echo "Creating user ${MYSQL_USER}..."
-    mariadb -u root -p ${MYSQL_ROOT_PASSWORD} -e "CREATE USER IF NOT EXISTS \`${MYSQL_USER}\`@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';"
+    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "CREATE USER IF NOT EXISTS \`${MYSQL_USER}\`@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';" 2>/dev/null || {
+        mysql -u root -e "CREATE USER IF NOT EXISTS \`${MYSQL_USER}\`@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';"
+    }
 
     # Grant privileges
     echo "Granting privileges..."
-    mariadb -u root -p ${MYSQL_ROOT_PASSWORD} -e "GRANT ALL PRIVILEGES ON \`${MYSQL_DB}\`.* TO \`${MYSQL_USER}\`@'%';"
+    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "GRANT ALL PRIVILEGES ON \`${MYSQL_DB}\`.* TO \`${MYSQL_USER}\`@'%';" 2>/dev/null || {
+        mysql -u root -e "GRANT ALL PRIVILEGES ON \`${MYSQL_DB}\`.* TO \`${MYSQL_USER}\`@'%';"
+    }
+    
+    echo "Flushing privileges..."
+    mysql -u root -p"$MYSQL_ROOT_PASSWORD" -e "FLUSH PRIVILEGES;" 2>/dev/null || {
+        mysql -u root -e "FLUSH PRIVILEGES;"
+    }
 
-    # Flush privileges
-    mariadb -u root -p ${MYSQL_ROOT_PASSWORD} -e "FLUSH PRIVILEGES;"
+    # Shutdown with password
+    mysqladmin -u root -p"$MYSQL_ROOT_PASSWORD" shutdown 2>/dev/null || mysqladmin -u root shutdown
+else
+    # Create the database and user without root password
+    echo "Creating database ${MYSQL_DB}..."
+    mysql -u root -e "CREATE DATABASE IF NOT EXISTS \`${MYSQL_DB}\`;"
 
-    # Shutdown the service to restart with mysqld_safe
-    echo "Restarting MariaDB with mysqld_safe..."
-    mysqladmin -u root -p ${MYSQL_ROOT_PASSWORD} shutdown
+    echo "Creating user ${MYSQL_USER}..."
+    mysql -u root -e "CREATE USER IF NOT EXISTS \`${MYSQL_USER}\`@'%' IDENTIFIED BY '${MYSQL_PASSWORD}';"
 
-# fi
+    # Grant privileges
+    echo "Granting privileges..."
+    mysql -u root -e "GRANT ALL PRIVILEGES ON \`${MYSQL_DB}\`.* TO \`${MYSQL_USER}\`@'%';"
+    echo "Flushing privileges..."
+    mysql -u root -e "FLUSH PRIVILEGES;"
 
-# Keep MariaDB running in foreground
-echo "Starting MariaDB in safe mode..."
-exec mysqld_safe --user=mariadb --datadir=/var/lib/mariadb
+    # Shutdown without password
+    mysqladmin -u root shutdown
+fi
+
+# restart mariadb
+echo "Restarting MariaDB with mysqld_safe..."
+mysqld_safe --port=3306 --bind-address=0.0.0.0 --datadir='/var/lib/mysql'
