@@ -24,7 +24,7 @@ services:
       - inception
 
   wordpress:
-    build: ./requirements/wordpress/
+    build: ./requirements/wordpress
     container_name: wordpress
     restart: always
     ports:
@@ -43,8 +43,8 @@ volumes:
     driver: local
     driver_opts:
       type: none
-      device: ~/docker-data/wordpress
       o: bind
+      device: ~/docker-data/wordpress
   mariadb_volume:
     driver: local
     driver_opts:
@@ -54,4 +54,4 @@ volumes:
 
 networks:
   inception:
-    name: inception
+    driver: bridge
