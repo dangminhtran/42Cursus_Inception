@@ -1,0 +1,74 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+readme.md
+README.txt
+*.md
+
+# Environment files (attention: gardez .env si nécessaire)
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Cache directories
+.cache/
+node_modules/
+.npm/
+
+# Docker files (éviter la récursion)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Build artifacts
+dist/
+build/
+out/
+
+# Test files
+test/
+tests/
+__tests__/
+*.test.*
+*.spec.*
+
+# Coverage reports
+coverage/
+.nyc_output/
+
+# Dependency directories
+vendor/
+composer.lock
+package-lock.json
+yarn.lock

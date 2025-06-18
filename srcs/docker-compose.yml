@@ -1,57 +1,84 @@
+version: '3.8'
+
 services:
-  nginx:
-    build: ./requirements/nginx/
-    container_name: nginx
+  mariadb:
+    container_name: mariadb
+    build: 
+      context: requirements/mariadb
+      dockerfile: Dockerfile
+    env_file: .env
+    networks:
+      - inception
+    volumes:
+      - mariadb:/var/lib/mysql
     restart: always
     ports:
-      - "443:443"
-    depends_on:
-      - wordpress
-    volumes:
-      - wordpress_volume:/var/www/wordpress
-    networks:
-      - inception
-
-  mariadb:
-    build: ./requirements/mariadb/
-    container_name: mariadb
-    restart: always
-    volumes:
-      - mariadb_volume:/var/lib/mysql
-    env_file:
-      - .env
-    networks:
-      - inception
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-u", "root"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   wordpress:
-    build: ./requirements/wordpress/
     container_name: wordpress
-    restart: always
-    ports:
-      - "9000:9000"
-    depends_on:
-      - mariadb
+    build: 
+      context: requirements/wordpress
+      dockerfile: Dockerfile
+    env_file: .env
     volumes:
-      - wordpress_volume:/var/www/wordpress
-    env_file:
-      - .env
+      - wordpress:/var/www/wordpress
     networks:
       - inception
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    restart: on-failure
+    ports: 
+      - "9000:9000"
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9000 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  nginx:
+    container_name: nginx
+    build: 
+      context: requirements/nginx
+      dockerfile: Dockerfile
+    env_file: .env
+    volumes:
+      - wordpress:/var/www/wordpress
+    networks:
+      - inception
+    depends_on:
+      wordpress:
+        condition: service_healthy
+    ports:
+      - "8443:443"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 volumes:
-  wordpress_volume:
+  wordpress:
     driver: local
     driver_opts:
-      type: none
-      device: /home/dangtran/data/wordpress
-      o: bind
-  mariadb_volume:
+      type: 'none'
+      o: 'bind'
+      device: '/home/dangtran/data/wordpress'
+  mariadb:
     driver: local
     driver_opts:
-      type: none
-      device: /home/dangtran/data/mysql
-      o: bind
+      type: 'none'
+      o: 'bind'
+      device: '/home/dangtran/data/mariadb'
 
 networks:
   inception:
-    name: inception
+    driver: bridge
