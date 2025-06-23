@@ -1,10 +1,33 @@
 version: '3.8'
 
 services:
+  nginx:
+    container_name: nginx
+    build: 
+      context: ./requirements/nginx
+      dockerfile: Dockerfile
+    env_file: .env
+    networks:
+      - inception
+    volumes:
+      - wordpress:/var/www/wordpress
+    depends_on:
+      - wordpress
+      # wordpress:
+      #   condition: service_healthy
+    ports:
+      - "8443:443"
+    restart: always
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  
   mariadb:
     container_name: mariadb
     build: 
-      context: requirements/mariadb
+      context: ./requirements/mariadb
       dockerfile: Dockerfile
     env_file: .env
     networks:
@@ -12,8 +35,8 @@ services:
     volumes:
       - mariadb:/var/lib/mysql
     restart: always
-    ports:
-      - "3306:3306"
+    # ports:
+    #   - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-u", "root"]
       interval: 10s
@@ -24,7 +47,7 @@ services:
   wordpress:
     container_name: wordpress
     build: 
-      context: requirements/wordpress
+      context: ./requirements/wordpress
       dockerfile: Dockerfile
     env_file: .env
     volumes:
@@ -43,42 +66,20 @@ services:
       timeout: 5s
       retries: 3
 
-  nginx:
-    container_name: nginx
-    build: 
-      context: requirements/nginx
-      dockerfile: Dockerfile
-    env_file: .env
-    volumes:
-      - wordpress:/var/www/wordpress
-    networks:
-      - inception
-    depends_on:
-      wordpress:
-        condition: service_healthy
-    ports:
-      - "8443:443"
-    restart: on-failure
-    healthcheck:
-      test: ["CMD", "nginx", "-t"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
 volumes:
-  wordpress:
-    driver: local
-    driver_opts:
-      type: 'none'
-      o: 'bind'
-      device: '/home/dangtran/data/wordpress'
   mariadb:
     driver: local
     driver_opts:
       type: 'none'
       o: 'bind'
       device: '/home/dangtran/data/mariadb'
+  wordpress:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '/home/dangtran/data/wordpress'
 
 networks:
   inception:
-    driver: bridge
+    name: inception

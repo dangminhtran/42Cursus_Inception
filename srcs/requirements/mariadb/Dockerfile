@@ -5,20 +5,14 @@ RUN apt update -y && apt upgrade -y
 RUN apt-get install -y \
 	mariadb-server \
 	mariadb-client \
+	tini \
 	&& apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# A supprimer car dans .env
-# Set environment variables for MySQL
-# ENV MYSQL_ROOT_PASSWORD=root
-# ENV MYSQL_DATABASE=default_db
-# ENV MYSQL_USER=user
-# ENV MYSQL_PASSWORD=password
 
 # Ensure the MySQL data directory exists and has the correct permissions
 RUN mkdir -p /var/lib/mysql \
 	&& chown -R mysql:mysql /var/lib/mysql \
-	&& chmod 750 /var/lib/mysql
+	&& chmod 777 /var/lib/mysql
 
 
 # Copy configuration files
@@ -30,6 +24,8 @@ RUN chmod +x /tmp/script.sh
 
 EXPOSE 3306
 
-ENTRYPOINT ["/tmp/script.sh"]
+# ENTRYPOINT ["/tmp/script.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/tmp/script.sh"]
 
-CMD ["mysqld", '--user=mysql']
+# CMD ["mysqld", '--user=mysql']
+CMD ["mysqld"]
