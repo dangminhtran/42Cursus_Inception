@@ -21,7 +21,7 @@ echo -e "${GREEN}Replacing database password...${NC}"
 sed -i "s/password_here/$MYSQL_PASSWORD/g" wp-config-sample.php
 
 echo -e "${YELLOW}Replacing database hostname...${NC}"
-sed -i "s/dangtran-mariadb/$MYSQL_HOSTNAME/g" wp-config-sample.php
+sed -i "s/localhost/$MYSQL_HOSTNAME/g" wp-config-sample.php
 
 echo -e "${BLUE}Replacing database name...${NC}"
 sed -i "s/database_name_here/$MYSQL_DB/g" wp-config-sample.php

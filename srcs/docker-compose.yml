@@ -16,7 +16,7 @@ services:
       # wordpress:
       #   condition: service_healthy
     ports:
-      - "8443:443"
+      - "443:443"
     restart: always
     healthcheck:
       test: ["CMD", "nginx", "-t"]
@@ -35,8 +35,8 @@ services:
     volumes:
       - mariadb:/var/lib/mysql
     restart: always
-    # ports:
-    #   - "3306:3306"
+    ports:
+      - "3306:3306"
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-u", "root"]
       interval: 10s
